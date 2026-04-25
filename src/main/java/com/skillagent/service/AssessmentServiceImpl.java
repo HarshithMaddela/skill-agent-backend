@@ -1,23 +1,15 @@
 package com.skillagent.service;
 
 import com.skillagent.model.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.regex.*;
 
 @Service
 public class AssessmentServiceImpl implements AssessmentService {
 
-    @Autowired
-    private OpenAIService openAIService;
-
     @Override
     public AssessmentResult analyze(String resume, String jd) {
-
-        if (resume == null) resume = "";
-        if (jd == null) jd = "";
 
         List<String> skills = extractSkills(jd);
         List<Skill> results = new ArrayList<>();
@@ -33,112 +25,90 @@ public class AssessmentServiceImpl implements AssessmentService {
             results.add(new Skill(skill, score, level));
         }
 
-        List<String> gaps = getSkillGaps(results);
-
         AssessmentResult res = new AssessmentResult();
         res.setSkills(results);
-        res.setSkillGaps(gaps);
+        res.setSkillGaps(getSkillGaps(results));
         res.setOverallFit(calculateOverallFit(results));
-
-        // 🔥 AI learning plan (safe)
-        String gapString = String.join(", ", gaps);
-        String aiPlan = openAIService.generateLearningPlan(resume, jd, gapString);
-
-        res.setLearningPlan(aiPlan);
+        res.setLearningPlan(generateLearningPlan(results));
 
         return res;
     }
 
-    // 🚀 CLEAN SKILL EXTRACTION
+    // 🔥 MULTI-DOMAIN SKILL EXTRACTION
     private List<String> extractSkills(String jd) {
 
-        Set<String> extracted = new HashSet<>();
+        List<String> allSkills = List.of(
 
-        List<String> coreSkills = List.of(
+                // 💻 IT / SOFTWARE
                 "Java", "Spring Boot", "React", "Python",
-                "SQL", "JavaScript", "HTML", "CSS",
                 "Machine Learning", "Deep Learning",
-                "Docker", "AWS", "Git", "Node.js", "REST"
+                "SQL", "HTML", "CSS", "JavaScript",
+
+                // ⚡ EEE
+                "Power Systems", "Electrical Machines",
+                "Control Systems", "Circuit Analysis",
+                "MATLAB", "Simulink",
+                "Transformers", "Transmission", "Distribution",
+                "Protection Systems",
+
+                // 📡 ECE
+                "Digital Electronics", "Analog Electronics",
+                "VLSI", "Signal Processing",
+                "Communication Systems",
+                "Embedded Systems", "Microcontrollers",
+                "IoT", "FPGA",
+
+                // 🏗️ CIVIL
+                "Structural Engineering", "Geotechnical Engineering",
+                "Fluid Mechanics", "Surveying",
+                "Construction Management",
+                "Concrete Technology", "Transportation Engineering"
         );
 
-        for (String skill : coreSkills) {
+        List<String> extracted = new ArrayList<>();
+
+        for (String skill : allSkills) {
             if (jd.toLowerCase().contains(skill.toLowerCase())) {
                 extracted.add(skill);
             }
         }
 
-        Pattern pattern = Pattern.compile("\\b[A-Z][a-zA-Z+.#]{2,}\\b");
-        Matcher matcher = pattern.matcher(jd);
-
-        while (matcher.find()) {
-            String word = matcher.group();
-
-            if (!isCommonWord(word)) {
-                extracted.add(word);
-            }
-        }
-
-        // 🔥 normalization
-        Set<String> normalized = new HashSet<>();
-
-        for (String skill : extracted) {
-            String lower = skill.toLowerCase();
-
-            if (lower.equals("spring") || lower.equals("boot")) continue;
-
-            if (lower.equals("js")) normalized.add("JavaScript");
-            else if (lower.equals("node")) normalized.add("Node.js");
-            else normalized.add(skill);
-        }
-
-        return new ArrayList<>(normalized);
+        return extracted;
     }
 
-    // 🔥 FILTER NOISE WORDS
-    private boolean isCommonWord(String word) {
-        List<String> ignore = List.of(
-                "Looking", "Should", "Candidate", "Experience",
-                "Knowledge", "Understanding", "Basic",
-                "Developer", "Software", "Boot", "APIs",
-                "System", "Application", "Role"
-        );
-        return ignore.contains(word);
-    }
-
-    // 🧠 IMPROVED SMART SCORING
+    // 📊 SMART SCORING
     private int evaluateSkill(String skill, String resume) {
 
         String res = resume.toLowerCase();
         String sk = skill.toLowerCase();
 
+        int occurrences = countOccurrences(res, sk);
+
         int score = 0;
 
-        // ✅ direct match
-        if (res.contains(sk)) score += 3;
+        if (occurrences >= 3) score += 6;
+        else if (occurrences == 2) score += 5;
+        else if (occurrences == 1) score += 3;
+        else score += 1;
 
-        // ✅ partial/fuzzy match
-        if (sk.contains("spring") && res.contains("spring")) score += 2;
-        if (sk.contains("react") && res.contains("react")) score += 2;
-        if (sk.contains("sql") &&
-                (res.contains("mysql") || res.contains("postgres") || res.contains("sql")))
-            score += 2;
-
-        // ✅ synonyms
-        if (sk.equals("javascript") && res.contains("js")) score += 2;
-        if (sk.equals("node.js") && res.contains("node")) score += 2;
-        if (sk.equals("rest") && res.contains("api")) score += 2;
-
-        // ✅ context boost
         if (res.contains("project") && res.contains(sk)) score += 2;
         if (res.contains("internship") && res.contains(sk)) score += 1;
 
-        // ✅ fallback fuzzy
-        if (score == 0 && sk.length() >= 4 &&
-                res.contains(sk.substring(0, 4))) {
-            score += 2;
-        }
+        // domain intelligence
+        if (sk.equals("spring boot") && res.contains("java")) score += 1;
+        if (sk.equals("react") && res.contains("javascript")) score += 1;
+        if (sk.equals("embedded systems") && res.contains("microcontroller")) score += 1;
 
         return Math.min(score, 10);
+    }
+
+    private int countOccurrences(String text, String word) {
+        int count = 0, index = 0;
+        while ((index = text.indexOf(word, index)) != -1) {
+            count++;
+            index += word.length();
+        }
+        return count;
     }
 
     // ⚠ SKILL GAPS
@@ -153,7 +123,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         }
 
         if (gaps.isEmpty()) {
-            gaps.add("Advanced Concepts");
+            gaps.add("Advanced Domain Concepts");
         }
 
         return gaps;
@@ -170,5 +140,30 @@ public class AssessmentServiceImpl implements AssessmentService {
         if (avg >= 7) return "Strong Fit";
         else if (avg >= 5) return "Moderate Fit";
         else return "Needs Improvement";
+    }
+
+    // 📘 LEARNING PLAN
+    private String generateLearningPlan(List<Skill> skills) {
+
+        StringBuilder plan = new StringBuilder("Personalized Learning Plan:\n");
+
+        for (Skill s : skills) {
+
+            if (s.getScore() <= 5) {
+                plan.append("- Improve ")
+                        .append(s.getName())
+                        .append(" (3-5 days)\n");
+            }
+            else if (s.getScore() <= 7) {
+                plan.append("- Strengthen ")
+                        .append(s.getName())
+                        .append(" with advanced projects\n");
+            }
+        }
+
+        plan.append("- Build domain-specific projects\n");
+        plan.append("- Practice real-world problem solving\n");
+
+        return plan.toString();
     }
 }
