@@ -29,17 +29,17 @@ public class AssessmentServiceImpl implements AssessmentService {
         res.setSkills(results);
         res.setSkillGaps(getSkillGaps(results));
         res.setOverallFit(calculateOverallFit(results));
-        res.setLearningPlan(generateLearningPlan(results));
+        res.setLearningPlan(generateLearningPlan(results)); // ⭐ UPDATED HERE
 
         return res;
     }
 
-    // 🔥 MULTI-DOMAIN SKILL EXTRACTION
+    // 🔍 SKILL EXTRACTION (MULTI-DOMAIN)
     private List<String> extractSkills(String jd) {
 
         List<String> allSkills = List.of(
 
-                // 💻 IT / SOFTWARE
+                // 💻 IT
                 "Java", "Spring Boot", "React", "Python",
                 "Machine Learning", "Deep Learning",
                 "SQL", "HTML", "CSS", "JavaScript",
@@ -142,27 +142,83 @@ public class AssessmentServiceImpl implements AssessmentService {
         else return "Needs Improvement";
     }
 
-    // 📘 LEARNING PLAN
+    // 🚀 🔥 FINAL SMART LEARNING PLAN
     private String generateLearningPlan(List<Skill> skills) {
 
-        StringBuilder plan = new StringBuilder("Personalized Learning Plan:\n");
+        StringBuilder plan = new StringBuilder();
+        plan.append("🚀 Personalized Learning Roadmap\n\n");
 
-        for (Skill s : skills) {
+        // 🔥 sort weakest first
+        skills.sort(Comparator.comparingInt(Skill::getScore));
 
-            if (s.getScore() <= 5) {
-                plan.append("- Improve ")
-                        .append(s.getName())
-                        .append(" (3-5 days)\n");
-            }
-            else if (s.getScore() <= 7) {
-                plan.append("- Strengthen ")
-                        .append(s.getName())
-                        .append(" with advanced projects\n");
+        int limit = Math.min(5, skills.size());
+
+        plan.append("📌 Priority Skills to Improve:\n");
+
+        for (int i = 0; i < limit; i++) {
+            Skill s = skills.get(i);
+
+            if (s.getScore() <= 4) {
+                plan.append("👉 ").append(s.getName())
+                        .append(": Start from basics → practice daily → build mini project (5-7 days)\n");
+            } 
+            else if (s.getScore() <= 6) {
+                plan.append("👉 ").append(s.getName())
+                        .append(": Revise concepts + build 1 intermediate project (3-5 days)\n");
+            } 
+            else {
+                plan.append("👉 ").append(s.getName())
+                        .append(": Strengthen with advanced use-cases & optimization\n");
             }
         }
 
-        plan.append("- Build domain-specific projects\n");
-        plan.append("- Practice real-world problem solving\n");
+        plan.append("\n🛠 Practical Actions:\n");
+
+        boolean isSoftware = skills.stream().anyMatch(s -> 
+                s.getName().equalsIgnoreCase("Java") ||
+                s.getName().equalsIgnoreCase("React") ||
+                s.getName().equalsIgnoreCase("Python")
+        );
+
+        boolean isEEE = skills.stream().anyMatch(s ->
+                s.getName().equalsIgnoreCase("Power Systems") ||
+                s.getName().equalsIgnoreCase("Control Systems")
+        );
+
+        boolean isECE = skills.stream().anyMatch(s ->
+                s.getName().equalsIgnoreCase("Embedded Systems") ||
+                s.getName().equalsIgnoreCase("Signal Processing")
+        );
+
+        boolean isCivil = skills.stream().anyMatch(s ->
+                s.getName().equalsIgnoreCase("Structural Engineering") ||
+                s.getName().equalsIgnoreCase("Fluid Mechanics")
+        );
+
+        if (isSoftware) {
+            plan.append("- Build 2 full-stack projects (React + Spring Boot)\n");
+            plan.append("- Practice DSA (LeetCode)\n");
+        }
+
+        if (isEEE) {
+            plan.append("- Simulate circuits using MATLAB/Simulink\n");
+            plan.append("- Study real-world power system case studies\n");
+        }
+
+        if (isECE) {
+            plan.append("- Build IoT/Embedded project using Arduino/ESP32\n");
+            plan.append("- Work with sensors & microcontrollers\n");
+        }
+
+        if (isCivil) {
+            plan.append("- Practice structural design problems\n");
+            plan.append("- Work on AutoCAD/STAAD models\n");
+        }
+
+        plan.append("\n📈 Growth Strategy:\n");
+        plan.append("- Study 2–3 hours daily\n");
+        plan.append("- Focus on project-based learning\n");
+        plan.append("- Revise weekly and track progress\n");
 
         return plan.toString();
     }
