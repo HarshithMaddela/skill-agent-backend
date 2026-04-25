@@ -40,7 +40,6 @@ public class AssessmentServiceImpl implements AssessmentService {
         res.setSkillGaps(gaps);
         res.setOverallFit(calculateOverallFit(results));
 
-        // 🔥 AI Learning Plan (safe fallback handled inside service)
         String gapString = String.join(", ", gaps);
         String aiPlan = openAIService.generateLearningPlan(resume, jd, gapString);
 
@@ -49,12 +48,12 @@ public class AssessmentServiceImpl implements AssessmentService {
         return res;
     }
 
-    // 🚀 IMPROVED SKILL EXTRACTION
+    // 🚀 CLEAN SKILL EXTRACTION
     private List<String> extractSkills(String jd) {
 
         Set<String> extracted = new HashSet<>();
 
-        // 🔹 Core tech skills (important)
+        // 🔹 Core skills
         List<String> coreSkills = List.of(
                 "Java", "Spring Boot", "React", "Python",
                 "SQL", "JavaScript", "HTML", "CSS",
@@ -68,26 +67,47 @@ public class AssessmentServiceImpl implements AssessmentService {
             }
         }
 
-        // 🔹 Dynamic extraction (only valid tech-like words)
+        // 🔹 Dynamic extraction
         Pattern pattern = Pattern.compile("\\b[A-Z][a-zA-Z+.#]{2,}\\b");
         Matcher matcher = pattern.matcher(jd);
 
         while (matcher.find()) {
             String word = matcher.group();
 
-            // ❌ filter useless words
             if (!isCommonWord(word)) {
                 extracted.add(word);
             }
         }
 
-        return new ArrayList<>(extracted);
+        // 🔥 NORMALIZATION STEP
+        Set<String> normalized = new HashSet<>();
+
+        for (String skill : extracted) {
+
+            String lower = skill.toLowerCase();
+
+            if (lower.equals("spring")) continue; // avoid duplicate
+            if (lower.equals("boot")) continue;
+
+            if (lower.equals("js")) {
+                normalized.add("JavaScript");
+            } else if (lower.equals("node")) {
+                normalized.add("Node.js");
+            } else {
+                normalized.add(skill);
+            }
+        }
+
+        return new ArrayList<>(normalized);
     }
 
+    // 🔥 FILTER BAD WORDS
     private boolean isCommonWord(String word) {
         List<String> ignore = List.of(
                 "Looking", "Should", "Candidate", "Experience",
-                "Knowledge", "Understanding", "Basic"
+                "Knowledge", "Understanding", "Basic",
+                "Developer", "Software", "Boot", "APIs",
+                "System", "Application", "Role"
         );
         return ignore.contains(word);
     }
@@ -102,17 +122,14 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         int score = 0;
 
-        // occurrence weight
         if (occurrences >= 3) score += 6;
         else if (occurrences == 2) score += 5;
         else if (occurrences == 1) score += 3;
         else score += 1;
 
-        // context boost
         if (res.contains("project") && res.contains(sk)) score += 2;
         if (res.contains("internship") && res.contains(sk)) score += 1;
 
-        // 🔥 synonym handling
         if (sk.equals("javascript") && res.contains("js")) score += 2;
         if (sk.equals("spring boot") && res.contains("spring")) score += 1;
         if (sk.equals("react") && res.contains("reactjs")) score += 1;
