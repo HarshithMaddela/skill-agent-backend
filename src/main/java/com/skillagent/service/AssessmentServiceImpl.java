@@ -16,6 +16,9 @@ public class AssessmentServiceImpl implements AssessmentService {
     @Override
     public AssessmentResult analyze(String resume, String jd) {
 
+        if (resume == null) resume = "";
+        if (jd == null) jd = "";
+
         List<String> skills = extractSkills(jd);
         List<Skill> results = new ArrayList<>();
 
@@ -37,7 +40,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         res.setSkillGaps(gaps);
         res.setOverallFit(calculateOverallFit(results));
 
-        // 🔥 AI ONLY FOR LEARNING PLAN (LOW COST)
+        // 🔥 AI Learning Plan (safe fallback handled inside service)
         String gapString = String.join(", ", gaps);
         String aiPlan = openAIService.generateLearningPlan(resume, jd, gapString);
 
@@ -46,16 +49,17 @@ public class AssessmentServiceImpl implements AssessmentService {
         return res;
     }
 
-    // 🚀 DYNAMIC SKILL EXTRACTION (NO HARD LIMIT)
+    // 🚀 IMPROVED SKILL EXTRACTION
     private List<String> extractSkills(String jd) {
 
         Set<String> extracted = new HashSet<>();
 
-        // 1️⃣ Predefined core skills (important ones)
+        // 🔹 Core tech skills (important)
         List<String> coreSkills = List.of(
                 "Java", "Spring Boot", "React", "Python",
                 "SQL", "JavaScript", "HTML", "CSS",
-                "Machine Learning", "Deep Learning"
+                "Machine Learning", "Deep Learning",
+                "Docker", "AWS", "Git", "Node.js"
         );
 
         for (String skill : coreSkills) {
@@ -64,18 +68,31 @@ public class AssessmentServiceImpl implements AssessmentService {
             }
         }
 
-        // 2️⃣ Dynamic extraction (capitalized words / tech words)
+        // 🔹 Dynamic extraction (only valid tech-like words)
         Pattern pattern = Pattern.compile("\\b[A-Z][a-zA-Z+.#]{2,}\\b");
         Matcher matcher = pattern.matcher(jd);
 
         while (matcher.find()) {
-            extracted.add(matcher.group());
+            String word = matcher.group();
+
+            // ❌ filter useless words
+            if (!isCommonWord(word)) {
+                extracted.add(word);
+            }
         }
 
         return new ArrayList<>(extracted);
     }
 
-    // 🧠 SMART SCORING (IMPROVED)
+    private boolean isCommonWord(String word) {
+        List<String> ignore = List.of(
+                "Looking", "Should", "Candidate", "Experience",
+                "Knowledge", "Understanding", "Basic"
+        );
+        return ignore.contains(word);
+    }
+
+    // 🧠 SMART SCORING
     private int evaluateSkill(String skill, String resume) {
 
         String res = resume.toLowerCase();
@@ -95,10 +112,11 @@ public class AssessmentServiceImpl implements AssessmentService {
         if (res.contains("project") && res.contains(sk)) score += 2;
         if (res.contains("internship") && res.contains(sk)) score += 1;
 
-        // 🔥 synonym intelligence
+        // 🔥 synonym handling
         if (sk.equals("javascript") && res.contains("js")) score += 2;
         if (sk.equals("spring boot") && res.contains("spring")) score += 1;
         if (sk.equals("react") && res.contains("reactjs")) score += 1;
+        if (sk.equals("node.js") && res.contains("node")) score += 1;
 
         return Math.min(score, 10);
     }
