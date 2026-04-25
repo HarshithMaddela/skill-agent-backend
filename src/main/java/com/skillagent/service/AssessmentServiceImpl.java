@@ -40,6 +40,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         res.setSkillGaps(gaps);
         res.setOverallFit(calculateOverallFit(results));
 
+        // 🔥 AI learning plan (safe)
         String gapString = String.join(", ", gaps);
         String aiPlan = openAIService.generateLearningPlan(resume, jd, gapString);
 
@@ -53,12 +54,11 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         Set<String> extracted = new HashSet<>();
 
-        // 🔹 Core skills
         List<String> coreSkills = List.of(
                 "Java", "Spring Boot", "React", "Python",
                 "SQL", "JavaScript", "HTML", "CSS",
                 "Machine Learning", "Deep Learning",
-                "Docker", "AWS", "Git", "Node.js"
+                "Docker", "AWS", "Git", "Node.js", "REST"
         );
 
         for (String skill : coreSkills) {
@@ -67,7 +67,6 @@ public class AssessmentServiceImpl implements AssessmentService {
             }
         }
 
-        // 🔹 Dynamic extraction
         Pattern pattern = Pattern.compile("\\b[A-Z][a-zA-Z+.#]{2,}\\b");
         Matcher matcher = pattern.matcher(jd);
 
@@ -79,29 +78,23 @@ public class AssessmentServiceImpl implements AssessmentService {
             }
         }
 
-        // 🔥 NORMALIZATION STEP
+        // 🔥 normalization
         Set<String> normalized = new HashSet<>();
 
         for (String skill : extracted) {
-
             String lower = skill.toLowerCase();
 
-            if (lower.equals("spring")) continue; // avoid duplicate
-            if (lower.equals("boot")) continue;
+            if (lower.equals("spring") || lower.equals("boot")) continue;
 
-            if (lower.equals("js")) {
-                normalized.add("JavaScript");
-            } else if (lower.equals("node")) {
-                normalized.add("Node.js");
-            } else {
-                normalized.add(skill);
-            }
+            if (lower.equals("js")) normalized.add("JavaScript");
+            else if (lower.equals("node")) normalized.add("Node.js");
+            else normalized.add(skill);
         }
 
         return new ArrayList<>(normalized);
     }
 
-    // 🔥 FILTER BAD WORDS
+    // 🔥 FILTER NOISE WORDS
     private boolean isCommonWord(String word) {
         List<String> ignore = List.of(
                 "Looking", "Should", "Candidate", "Experience",
@@ -112,39 +105,40 @@ public class AssessmentServiceImpl implements AssessmentService {
         return ignore.contains(word);
     }
 
-    // 🧠 SMART SCORING
+    // 🧠 IMPROVED SMART SCORING
     private int evaluateSkill(String skill, String resume) {
 
         String res = resume.toLowerCase();
         String sk = skill.toLowerCase();
 
-        int occurrences = countOccurrences(res, sk);
-
         int score = 0;
 
-        if (occurrences >= 3) score += 6;
-        else if (occurrences == 2) score += 5;
-        else if (occurrences == 1) score += 3;
-        else score += 1;
+        // ✅ direct match
+        if (res.contains(sk)) score += 3;
 
+        // ✅ partial/fuzzy match
+        if (sk.contains("spring") && res.contains("spring")) score += 2;
+        if (sk.contains("react") && res.contains("react")) score += 2;
+        if (sk.contains("sql") &&
+                (res.contains("mysql") || res.contains("postgres") || res.contains("sql")))
+            score += 2;
+
+        // ✅ synonyms
+        if (sk.equals("javascript") && res.contains("js")) score += 2;
+        if (sk.equals("node.js") && res.contains("node")) score += 2;
+        if (sk.equals("rest") && res.contains("api")) score += 2;
+
+        // ✅ context boost
         if (res.contains("project") && res.contains(sk)) score += 2;
         if (res.contains("internship") && res.contains(sk)) score += 1;
 
-        if (sk.equals("javascript") && res.contains("js")) score += 2;
-        if (sk.equals("spring boot") && res.contains("spring")) score += 1;
-        if (sk.equals("react") && res.contains("reactjs")) score += 1;
-        if (sk.equals("node.js") && res.contains("node")) score += 1;
+        // ✅ fallback fuzzy
+        if (score == 0 && sk.length() >= 4 &&
+                res.contains(sk.substring(0, 4))) {
+            score += 2;
+        }
 
         return Math.min(score, 10);
-    }
-
-    private int countOccurrences(String text, String word) {
-        int count = 0, index = 0;
-        while ((index = text.indexOf(word, index)) != -1) {
-            count++;
-            index += word.length();
-        }
-        return count;
     }
 
     // ⚠ SKILL GAPS
