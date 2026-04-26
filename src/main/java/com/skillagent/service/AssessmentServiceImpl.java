@@ -29,12 +29,12 @@ public class AssessmentServiceImpl implements AssessmentService {
         res.setSkills(results);
         res.setSkillGaps(getSkillGaps(results));
         res.setOverallFit(calculateOverallFit(results));
-        res.setLearningPlan(generateLearningPlan(results)); // ⭐ UPDATED HERE
+        res.setLearningPlan(generateLearningPlan(results));
 
         return res;
     }
 
-    // 🔍 SKILL EXTRACTION (MULTI-DOMAIN)
+    // 🔍 SKILL EXTRACTION
     private List<String> extractSkills(String jd) {
 
         List<String> allSkills = List.of(
@@ -76,7 +76,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         return extracted;
     }
 
-    // 📊 SMART SCORING
+    // 📊 SCORING
     private int evaluateSkill(String skill, String resume) {
 
         String res = resume.toLowerCase();
@@ -94,7 +94,6 @@ public class AssessmentServiceImpl implements AssessmentService {
         if (res.contains("project") && res.contains(sk)) score += 2;
         if (res.contains("internship") && res.contains(sk)) score += 1;
 
-        // domain intelligence
         if (sk.equals("spring boot") && res.contains("java")) score += 1;
         if (sk.equals("react") && res.contains("javascript")) score += 1;
         if (sk.equals("embedded systems") && res.contains("microcontroller")) score += 1;
@@ -104,10 +103,12 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     private int countOccurrences(String text, String word) {
         int count = 0, index = 0;
+
         while ((index = text.indexOf(word, index)) != -1) {
             count++;
             index += word.length();
         }
+
         return count;
     }
 
@@ -122,14 +123,12 @@ public class AssessmentServiceImpl implements AssessmentService {
             }
         }
 
-        if (gaps.isEmpty()) {
-            gaps.add("Advanced Domain Concepts");
-        }
+        if (gaps.isEmpty()) gaps.add("Advanced Domain Concepts");
 
         return gaps;
     }
 
-    // 🎯 OVERALL FIT
+    // 🎯 FIT
     private String calculateOverallFit(List<Skill> skills) {
 
         double avg = skills.stream()
@@ -142,83 +141,100 @@ public class AssessmentServiceImpl implements AssessmentService {
         else return "Needs Improvement";
     }
 
-    // 🚀 🔥 FINAL SMART LEARNING PLAN
+    // 🔥 RESOURCE CLASS
+    static class SkillResource {
+        String link;
+        String duration;
+
+        SkillResource(String link, String duration) {
+            this.link = link;
+            this.duration = duration;
+        }
+    }
+
+    // 📚 FULL RESOURCE MAP
+    private Map<String, SkillResource> getResources() {
+
+        Map<String, SkillResource> map = new HashMap<>();
+
+        // 💻 IT
+        map.put("Java", new SkillResource("https://www.geeksforgeeks.org/java/", "2-3 weeks"));
+        map.put("Spring Boot", new SkillResource("https://spring.io/guides", "1-2 weeks"));
+        map.put("React", new SkillResource("https://react.dev/learn", "2 weeks"));
+        map.put("Python", new SkillResource("https://www.learnpython.org/", "2 weeks"));
+        map.put("Machine Learning", new SkillResource("https://www.coursera.org/learn/machine-learning", "4 weeks"));
+        map.put("Deep Learning", new SkillResource("https://www.deeplearning.ai/", "4-6 weeks"));
+        map.put("SQL", new SkillResource("https://www.w3schools.com/sql/", "1 week"));
+        map.put("HTML", new SkillResource("https://www.w3schools.com/html/", "3-5 days"));
+        map.put("CSS", new SkillResource("https://www.w3schools.com/css/", "1 week"));
+        map.put("JavaScript", new SkillResource("https://javascript.info/", "2 weeks"));
+
+        // ⚡ EEE
+        map.put("Power Systems", new SkillResource("https://nptel.ac.in/courses/108104051", "3-4 weeks"));
+        map.put("Electrical Machines", new SkillResource("https://nptel.ac.in/courses/108106072", "3 weeks"));
+        map.put("Control Systems", new SkillResource("https://nptel.ac.in/courses/108106098", "3 weeks"));
+        map.put("Circuit Analysis", new SkillResource("https://nptel.ac.in/courses/108102042", "2-3 weeks"));
+        map.put("MATLAB", new SkillResource("https://matlabacademy.mathworks.com/", "1-2 weeks"));
+        map.put("Simulink", new SkillResource("https://matlabacademy.mathworks.com/details/simulink-onramp", "1 week"));
+        map.put("Transformers", new SkillResource("https://nptel.ac.in/courses/108106072", "1-2 weeks"));
+        map.put("Transmission", new SkillResource("https://nptel.ac.in/courses/108105053", "2 weeks"));
+        map.put("Distribution", new SkillResource("https://nptel.ac.in/courses/108105053", "2 weeks"));
+        map.put("Protection Systems", new SkillResource("https://nptel.ac.in/courses/108101039", "2-3 weeks"));
+
+        // 📡 ECE
+        map.put("Digital Electronics", new SkillResource("https://nptel.ac.in/courses/117106086", "3 weeks"));
+        map.put("Analog Electronics", new SkillResource("https://nptel.ac.in/courses/117106030", "3 weeks"));
+        map.put("VLSI", new SkillResource("https://nptel.ac.in/courses/117106092", "4 weeks"));
+        map.put("Signal Processing", new SkillResource("https://nptel.ac.in/courses/117102060", "3 weeks"));
+        map.put("Communication Systems", new SkillResource("https://nptel.ac.in/courses/117101051", "3 weeks"));
+        map.put("Embedded Systems", new SkillResource("https://www.coursera.org/specializations/embedded-systems", "4 weeks"));
+        map.put("Microcontrollers", new SkillResource("https://www.geeksforgeeks.org/microcontroller/", "2 weeks"));
+        map.put("IoT", new SkillResource("https://www.coursera.org/specializations/iot", "4 weeks"));
+        map.put("FPGA", new SkillResource("https://www.udemy.com/course/fpga-design/", "3 weeks"));
+
+        // 🏗️ CIVIL
+        map.put("Structural Engineering", new SkillResource("https://nptel.ac.in/courses/105106113", "4 weeks"));
+        map.put("Geotechnical Engineering", new SkillResource("https://nptel.ac.in/courses/105103097", "3 weeks"));
+        map.put("Fluid Mechanics", new SkillResource("https://nptel.ac.in/courses/112105183", "3 weeks"));
+        map.put("Surveying", new SkillResource("https://nptel.ac.in/courses/105104101", "2 weeks"));
+        map.put("Construction Management", new SkillResource("https://nptel.ac.in/courses/105103093", "3 weeks"));
+        map.put("Concrete Technology", new SkillResource("https://nptel.ac.in/courses/105102012", "2 weeks"));
+        map.put("Transportation Engineering", new SkillResource("https://nptel.ac.in/courses/105104098", "3 weeks"));
+
+        return map;
+    }
+
+    // 🚀 LEARNING PLAN
     private String generateLearningPlan(List<Skill> skills) {
 
         StringBuilder plan = new StringBuilder();
+        Map<String, SkillResource> resources = getResources();
+
         plan.append("🚀 Personalized Learning Roadmap\n\n");
 
-        // 🔥 sort weakest first
         skills.sort(Comparator.comparingInt(Skill::getScore));
-
         int limit = Math.min(5, skills.size());
 
-        plan.append("📌 Priority Skills to Improve:\n");
-
         for (int i = 0; i < limit; i++) {
+
             Skill s = skills.get(i);
+            SkillResource r = resources.getOrDefault(
+                    s.getName(),
+                    new SkillResource("https://www.google.com/search?q=" + s.getName(), "1-2 weeks")
+            );
 
-            if (s.getScore() <= 4) {
-                plan.append("👉 ").append(s.getName())
-                        .append(": Start from basics → practice daily → build mini project (5-7 days)\n");
-            } 
-            else if (s.getScore() <= 6) {
-                plan.append("👉 ").append(s.getName())
-                        .append(": Revise concepts + build 1 intermediate project (3-5 days)\n");
-            } 
-            else {
-                plan.append("👉 ").append(s.getName())
-                        .append(": Strengthen with advanced use-cases & optimization\n");
-            }
+            plan.append("👉 ").append(s.getName()).append("\n");
+
+            if (s.getScore() <= 4)
+                plan.append("   Level: Beginner → Start basics + mini project\n");
+            else if (s.getScore() <= 6)
+                plan.append("   Level: Intermediate → Build project\n");
+            else
+                plan.append("   Level: Advanced → Optimize & master\n");
+
+            plan.append("   📚 ").append(r.link).append("\n");
+            plan.append("   ⏱ ").append(r.duration).append("\n\n");
         }
-
-        plan.append("\n🛠 Practical Actions:\n");
-
-        boolean isSoftware = skills.stream().anyMatch(s -> 
-                s.getName().equalsIgnoreCase("Java") ||
-                s.getName().equalsIgnoreCase("React") ||
-                s.getName().equalsIgnoreCase("Python")
-        );
-
-        boolean isEEE = skills.stream().anyMatch(s ->
-                s.getName().equalsIgnoreCase("Power Systems") ||
-                s.getName().equalsIgnoreCase("Control Systems")
-        );
-
-        boolean isECE = skills.stream().anyMatch(s ->
-                s.getName().equalsIgnoreCase("Embedded Systems") ||
-                s.getName().equalsIgnoreCase("Signal Processing")
-        );
-
-        boolean isCivil = skills.stream().anyMatch(s ->
-                s.getName().equalsIgnoreCase("Structural Engineering") ||
-                s.getName().equalsIgnoreCase("Fluid Mechanics")
-        );
-
-        if (isSoftware) {
-            plan.append("- Build 2 full-stack projects (React + Spring Boot)\n");
-            plan.append("- Practice DSA (LeetCode)\n");
-        }
-
-        if (isEEE) {
-            plan.append("- Simulate circuits using MATLAB/Simulink\n");
-            plan.append("- Study real-world power system case studies\n");
-        }
-
-        if (isECE) {
-            plan.append("- Build IoT/Embedded project using Arduino/ESP32\n");
-            plan.append("- Work with sensors & microcontrollers\n");
-        }
-
-        if (isCivil) {
-            plan.append("- Practice structural design problems\n");
-            plan.append("- Work on AutoCAD/STAAD models\n");
-        }
-
-        plan.append("\n📈 Growth Strategy:\n");
-        plan.append("- Study 2–3 hours daily\n");
-        plan.append("- Focus on project-based learning\n");
-        plan.append("- Revise weekly and track progress\n");
 
         return plan.toString();
     }
